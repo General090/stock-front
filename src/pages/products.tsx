@@ -187,7 +187,7 @@ function ProductManagement() {
                 value={form.costPrice}
                 onChange={handleChange}
                 min={0}
-                step="0.01"
+                step="10"
                 required
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none mb-5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
@@ -201,7 +201,7 @@ function ProductManagement() {
                 value={form.sellingPrice}
                 onChange={handleChange}
                 min={0}
-                step="0.01"
+                step="10"
                 required
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none mb-5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
