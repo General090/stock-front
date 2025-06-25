@@ -1,147 +1,297 @@
 import { useEffect, useState } from "react";
+import { Table, Badge, Statistic, message, Spin, Tabs } from "antd";
 import AdminLayout from "../components/AdminLayout";
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid
-} from "recharts";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-import { unparse } from "papaparse";
 
-interface Product {
+interface StockItem {
+  id: string;
   name: string;
-  quantity: number;
+  initialQuantity: number;
+  remainingQuantity: number;
+  soldQuantity: number;
+  costPrice?: number | null;
+  sellingPrice?: number | null;
+  minThreshold: number;
+  maxThreshold: number;
+  totalCostValue?: number | null;
+  totalSalesValue?: number | null;
+  profit?: number | null;
 }
 
-interface Summary {
-  totalItems: number;
-  totalStock: number;
-  lowStock: Product[];
+interface ApiResponse {
+  success: boolean;
+  data: StockItem[];
+  summary: {
+    totalItems: number;
+    totalStockValue: number;
+    totalSalesValue: number;
+    totalProfit: number;
+    lowStockItems: StockItem[];
+  };
 }
 
-export default function StockSummary() {
-  const [summary, setSummary] = useState<Summary | null>(null);
+const { TabPane } = Tabs;
+
+export default function StockReportPage() {
+  const [stockData, setStockData] = useState<StockItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [filteredLowStock, setFilteredLowStock] = useState<Product[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<ApiResponse['summary']>({
+    totalItems: 0,
+    totalStockValue: 0,
+    totalSalesValue: 0,
+    totalProfit: 0,
+    lowStockItems: []
+  });
 
   useEffect(() => {
-    const fetchSummary = async () => {
+    const fetchStockData = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/reports/stock-summary");
-        const data = await res.json();
-        setSummary(data);
-        setFilteredLowStock(data.lowStock); // initialize filtered list
-      } catch (err) {
-        setError("Failed to fetch stock summary");
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch("http://localhost:5000/api/reports/stock-summary");
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const result: ApiResponse = await response.json();
+        
+        if (!result.success) {
+          throw new Error('Failed to fetch stock data');
+        }
+        
+        const transformedData = result.data.map(item => ({
+          ...item,
+          id: Math.random().toString(36).substring(2, 9),
+          costPrice: item.costPrice ?? 0,
+          sellingPrice: item.sellingPrice ?? 0,
+          totalCostValue: item.totalCostValue ?? 0,
+          totalSalesValue: item.totalSalesValue ?? 0,
+          profit: item.profit ?? 0
+        }));
+        
+        setStockData(transformedData);
+        setSummary({
+          ...result.summary,
+          lowStockItems: result.summary.lowStockItems.map(item => ({
+            ...item,
+            costPrice: item.costPrice ?? 0,
+            sellingPrice: item.sellingPrice ?? 0
+          }))
+        });
+        
+        message.success('Stock data loaded successfully');
+      } catch (error) {
+        console.error("Error:", error);
+        setError(error instanceof Error ? error.message : 'Failed to fetch data');
+        message.error('Failed to load stock data');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchSummary();
+    fetchStockData();
   }, []);
 
-  
+  const columns = [
+    {
+      title: "Product",
+      dataIndex: "name",
+      key: "name",
+      fixed: 'left' as const,
+      width: 150,
+      ellipsis: true
+    },
+    {
+      title: "Initial Qty",
+      dataIndex: "initialQuantity",
+      key: "initial",
+      width: 80,
+      align: 'right' as const
+    },
+    {
+      title: "Remaining Qty",
+      dataIndex: "remainingQuantity",
+      key: "remaining",
+      width: 90,
+      align: 'right' as const,
+      render: (quantity: number, record: StockItem) => (
+        <Badge
+          status={quantity < (record.minThreshold ?? 0) ? "error" : "success"}
+          text={quantity}
+        />
+      )
+    },
+    {
+      title: "Sold Qty",
+      dataIndex: "soldQuantity",
+      key: "sold",
+      width: 80,
+      align: 'right' as const
+    },
+    {
+      title: "Cost/Unit ($)",
+      dataIndex: "costPrice",
+      key: "cost",
+      render: (value: number | null | undefined) => (value ?? 0).toFixed(2),
+      width: 90,
+      align: 'right' as const
+    },
+    {
+      title: "Price/Unit ($)",
+      dataIndex: "sellingPrice",
+      key: "price",
+      render: (value: number | null | undefined) => (value ?? 0).toFixed(2),
+      width: 90,
+      align: 'right' as const
+    },
+    {
+      title: "Profit/Unit ($)",
+      key: "unitProfit",
+      render: (_: any, record: StockItem) => 
+        ((record.sellingPrice ?? 0) - (record.costPrice ?? 0)).toFixed(2),
+      width: 90,
+      align: 'right' as const
+    },
+    {
+      title: "Total Cost ($)",
+      dataIndex: "totalCostValue",
+      key: "totalCost",
+      render: (value: number | null | undefined) => (value ?? 0).toFixed(2),
+      width: 100,
+      align: 'right' as const
+    },
+    {
+      title: "Total Sales ($)",
+      dataIndex: "totalSalesValue",
+      key: "totalSales",
+      render: (value: number | null | undefined) => (value ?? 0).toFixed(2),
+      width: 100,
+      align: 'right' as const
+    },
+    {
+      title: "Total Profit ($)",
+      dataIndex: "profit",
+      key: "profit",
+      render: (value: number | null | undefined) => (
+        <span style={{ color: (value ?? 0) >= 0 ? 'green' : 'red' }}>
+          {(value ?? 0).toFixed(2)}
+        </span>
+      ),
+      width: 100,
+      align: 'right' as const
+    }
+  ];
 
-  const handleSearch = (term: string) => {
-    setSearchTerm(term);
-    const filtered = summary?.lowStock.filter((item) =>
-      item.name.toLowerCase().includes(term.toLowerCase())
+  const lowStockColumns = [
+    {
+      title: "Product",
+      dataIndex: "name",
+      key: "name"
+    },
+    {
+      title: "Remaining Qty",
+      dataIndex: "remainingQuantity",
+      key: "remaining",
+      render: (value: number) => (
+        <Badge status="error" text={value} />
+      )
+    },
+    {
+      title: "Min Threshold",
+      dataIndex: "minThreshold",
+      key: "threshold"
+    },
+    {
+      title: "Price/Unit ($)",
+      dataIndex: "sellingPrice",
+      key: "price",
+      render: (value: number | null | undefined) => (value ?? 0).toFixed(2)
+    }
+  ];
+
+  if (error) {
+    return (
+      <AdminLayout>
+        <div className="p-6 text-red-500">
+          <h2 className="text-2xl font-bold mb-4">Error</h2>
+          <p>{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Retry
+          </button>
+        </div>
+      </AdminLayout>
     );
-    setFilteredLowStock(filtered || []);
-  };
-
-  const exportToPDF = () => {
-    const doc = new jsPDF();
-    doc.text("Low Stock Report", 14, 16);
-    autoTable(doc, {
-      startY: 20,
-      head: [["Product", "Quantity"]],
-      body: filteredLowStock.map(p => [p.name, p.quantity]),
-    });
-    doc.save("low-stock-report.pdf");
-  };
-
-  const exportToCSV = () => {
-    const csv = unparse(filteredLowStock);
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement("a");
-    link.href = url;
-    link.setAttribute("download", "low-stock-report.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  if (loading) return <p>Loading stock summary...</p>;
-  if (error) return <p className="text-red-500">{error}</p>;
+  }
 
   return (
     <AdminLayout>
-      <div className="p-6 bg-white shadow-md rounded-lg">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
-          <h2 className="text-2xl font-bold mb-2 sm:mb-0">Stock Summary</h2>
-          <input
-            type="text"
-            placeholder="Search product..."
-            className="border px-3 py-1 rounded"
-            value={searchTerm}
-            onChange={(e) => handleSearch(e.target.value)}
-          />
-        </div>
+      <div className="p-6">
+        <h2 className="text-2xl font-bold mb-6">Stock Summary Report</h2>
+        
+        <Spin spinning={loading}>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="p-4 bg-blue-50 rounded border">
+              <Statistic
+                title="Total Products"
+                value={summary.totalItems}
+              />
+            </div>
+            <div className="p-4 bg-green-50 rounded border">
+              <Statistic
+                title="Stock Value"
+                value={summary.totalStockValue}
+                precision={2}
+                prefix="$"
+              />
+            </div>
+            <div className="p-4 bg-purple-50 rounded border">
+              <Statistic
+                title="Sales Value"
+                value={summary.totalSalesValue}
+                precision={2}
+                prefix="$"
+              />
+            </div>
+            <div className="p-4 bg-orange-50 rounded border">
+              <Statistic
+                title="Total Profit"
+                value={summary.totalProfit}
+                precision={2}
+                prefix="$"
+                valueStyle={{ color: summary.totalProfit >= 0 ? '#3f8600' : '#cf1322' }}
+              />
+            </div>
+          </div>
 
-        <div className="mb-6">
-          <p>Total Products: <strong>{summary?.totalItems}</strong></p>
-          <p>Total Stock Quantity: <strong>{summary?.totalStock}</strong></p>
-        </div>
-
-        <div className="flex gap-4 mb-4">
-          <button onClick={exportToCSV} className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
-            Export CSV
-          </button>
-          <button onClick={exportToPDF} className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600">
-            Export PDF
-          </button>
-        </div>
-
-        <h3 className="text-xl font-semibold mb-2">🚨 Low Stock Items</h3>
-        <table className="min-w-full border border-gray-300 text-sm mb-6">
-          <thead className="bg-gray-100">
-            <tr>
-              <th className="p-2 border">Product</th>
-              <th className="p-2 border">Quantity</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredLowStock.length > 0 ? (
-              filteredLowStock.map((item, i) => (
-                <tr key={i} className="text-center">
-                  <td className="p-2 border">{item.name}</td>
-                  <td className="p-2 border text-red-500">{item.quantity}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={2} className="p-2 border text-center text-gray-500">
-                  All items are sufficiently stocked.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={filteredLowStock}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="quantity" fill="#4f46e5" />
-          </BarChart>
-        </ResponsiveContainer>
+          <Tabs defaultActiveKey="1">
+            <TabPane tab="Full Inventory" key="1">
+              <Table
+                columns={columns}
+                dataSource={stockData}
+                loading={loading}
+                rowKey="id"
+                pagination={{ pageSize: 10 }}
+                scroll={{ x: 1500 }}
+                size="middle"
+                bordered
+              />
+            </TabPane>
+            <TabPane tab="Low Stock Items" key="2">
+              <Table
+                columns={lowStockColumns}
+                dataSource={summary.lowStockItems}
+                rowKey="id"
+                pagination={{ pageSize: 10 }}
+                bordered
+              />
+            </TabPane>
+          </Tabs>
+        </Spin>
       </div>
     </AdminLayout>
   );

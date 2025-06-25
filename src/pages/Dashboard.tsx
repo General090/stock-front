@@ -5,16 +5,23 @@ import { Link } from "react-router-dom";
 import StockChart from "../components/StockChart";
 import { toast } from "react-toastify";
 
-
-interface Product {
-  name: string;
-  quantity: number;
-}
-
 interface DashboardStats {
   totalProducts: number;
   totalQuantity: number;
   lowStock: number;
+}
+
+interface Product {
+  _id: string;
+  name: string;
+  quantity: number;
+  remainingQuantity: number;
+  minThreshold: number;
+}
+
+interface ProductForChart {
+  name: string;
+  quantity: number;
 }
 
 interface Transaction {
@@ -26,50 +33,67 @@ interface Transaction {
 }
 
 export default function Dashboard() {
-  const [products, setProducts] = useState<Product[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
     totalProducts: 0,
     totalQuantity: 0,
     lowStock: 0,
   });
-
+  const [products, setProducts] = useState<ProductForChart[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch all data in parallel
+        const [statsRes, transactionsRes, productsRes] = await Promise.all([
+          api.get<{success: boolean; data: DashboardStats}>("/dashboard/stats"),
+          api.get<{success: boolean; data: Transaction[]}>("/transactions/recent"),
+          api.get<{success: boolean; data: Product[]}>("/products")
+        ]);
 
-    useEffect (() => {
-      const fetchData = async () => {
-        try {
-          const statsRes = await api.get("/dashboard/stats");
-          setStats(statsRes.data);
-    
-          const transactionsRes = await api.get("/transactions/recent");
-          setTransactions(transactionsRes.data);
-    
-          const res = await api.get("/products");
-
-          const formatted = res.data.map((p: any) => ({
-            name: p.name,
-            quantity: p.quantity,
-          }));
-
-          setProducts(formatted); // ✅ use it here
-        } catch (err) {
-          console.error("Failed to fetch products:", err);
+        // Set stats
+        if (statsRes.data.success) {
+          setStats(statsRes.data.data);
         }
-      };
-    
-      fetchData();
-    }, []);
 
-    useEffect(() => {
-      if (stats.lowStock > 0) {
-        toast.warn(`${stats.lowStock} product${stats.lowStock > 1 ? "s are" : " is"} low in stock!`, {
-          position: "top-right",
-          autoClose: 5000,
-        });
+        // Set transactions
+        if (transactionsRes.data.success) {
+          setTransactions(transactionsRes.data.data);
+        }
+
+        // Format products for chart
+        if (productsRes.data.success) {
+          setProducts(productsRes.data.data.map((p: Product) => ({
+            name: p.name,
+            quantity: p.remainingQuantity
+          })));
+        }
+
+        // Show low stock alert
+        if (statsRes.data.success && statsRes.data.data.lowStock > 0) {
+          toast.warn(
+            `${statsRes.data.data.lowStock} product${statsRes.data.data.lowStock > 1 ? 's' : ''} below stock threshold`,
+            { position: "top-right", autoClose: 10000 }
+          );
+        }
+
+      } catch (err) {
+        console.error("Failed to fetch dashboard data:", err);
+        toast.error("Failed to load dashboard data");
+      } finally {
+        setLoading(false);
       }
-    }, [stats.lowStock]);
+    };
     
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return <AdminLayout><div className="p-6">Loading...</div></AdminLayout>;
+  }
 
   return (
     <AdminLayout>
@@ -80,13 +104,8 @@ export default function Dashboard() {
           <div className="bg-yellow-100 text-yellow-800 border border-yellow-300 p-4 rounded mb-6">
             ⚠️ <strong>{stats.lowStock}</strong> product
             {stats.lowStock > 1 ? "s are" : " is"} running low on stock.{" "}
-
-            <Link to="/low-stock">
-              <a
-                className="text-blue-600 underline ml-1 font-medium"
-              >
-                View details
-              </a>
+            <Link to="/low-stock" className="text-blue-600 underline ml-1 font-medium">
+              View details
             </Link>
           </div>
         )}
