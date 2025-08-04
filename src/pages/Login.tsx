@@ -20,7 +20,7 @@ export default function Login() {
       const res = await api.post("/auth/login", data);
       localStorage.setItem("token", res.data.token);
       toast.success("Logged in");
-      navigate("/dashboard");
+      navigate("/dashboard", { replace: true });
     } catch (error) {
       toast.error("Login failed");
     } finally {

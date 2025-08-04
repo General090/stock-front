@@ -47,7 +47,7 @@ function ProductManagement() {
 
   async function fetchProducts() {
     try {
-      const res = await api.get("/products");
+      const res = await api.get("/products/my-products");
       const productsData = (res.data.data || res.data).map((product: any) => ({
         ...product,
         costPrice: product.costPrice ?? 0,

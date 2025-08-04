@@ -51,7 +51,8 @@ export default function Dashboard() {
         const [statsRes, transactionsRes, productsRes] = await Promise.all([
           api.get<{success: boolean; data: DashboardStats}>("/dashboard/stats"),
           api.get<{success: boolean; data: Transaction[]}>("/transactions/recent"),
-          api.get<{success: boolean; data: Product[]}>("/products")
+          api.get<{success: boolean; data: Product[]}>("/products/my-products")
+          
         ]);
 
         // Set stats
@@ -65,11 +66,14 @@ export default function Dashboard() {
         }
 
         // Format products for chart
-        if (productsRes.data.success) {
-          setProducts(productsRes.data.data.map((p: Product) => ({
+        if (productsRes.data.success && Array.isArray(productsRes.data.data)) {
+          const chartData = productsRes.data.data.map((p: Product) => ({
             name: p.name,
-            quantity: p.remainingQuantity
-          })));
+            quantity: p.remainingQuantity ?? 0 // fallback to 0 if undefined
+          }));
+          setProducts(chartData);
+        } else {
+          setProducts([]); // Clear chart data if request fails or empty
         }
 
         // Show low stock alert
@@ -126,6 +130,7 @@ export default function Dashboard() {
         </div>
 
         <StockChart data={products} />
+        
 
         <h2 className="text-xl font-semibold mb-2 mt-10">Recent Transactions</h2>
         <div className="bg-white p-4 shadow rounded">
