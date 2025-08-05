@@ -170,10 +170,8 @@ function ProductManagement() {
               <span className="block text-sm font-medium text-gray-700 mb-1">Initial Quantity:</span>
               <input
                 name="initialQuantity"
-                type="number"
                 value={form.initialQuantity}
                 onChange={handleChange}
-                min={0}
                 required
                 className="w-full border border-gray-300 rounded-lg px-4 py-3 text-sm focus:outline-none mb-5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
@@ -183,7 +181,6 @@ function ProductManagement() {
               <span className="block text-sm font-medium text-gray-700 mb-1">Cost Price (₦):</span>
               <input
                 name="costPrice"
-                type="number"
                 value={form.costPrice}
                 onChange={handleChange}
                 min={0}
@@ -197,7 +194,6 @@ function ProductManagement() {
               <span className="block text-sm font-medium text-gray-700 mb-1">Selling Price (₦):</span>
               <input
                 name="sellingPrice"
-                type="number"
                 value={form.sellingPrice}
                 onChange={handleChange}
                 min={0}
@@ -211,7 +207,6 @@ function ProductManagement() {
               <span className="block text-sm font-medium text-gray-700 mb-1">Minimum Threshold:</span>
               <input
                 name="minThreshold"
-                type="number"
                 value={form.minThreshold}
                 onChange={handleChange}
                 min={0}
