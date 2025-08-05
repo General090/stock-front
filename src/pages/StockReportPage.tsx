@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Table, Badge, Statistic, message, Spin, Tabs } from "antd";
 import AdminLayout from "../components/AdminLayout";
+import api from "../services/api"
 
 interface StockItem {
   id: string;
@@ -48,19 +49,15 @@ export default function StockReportPage() {
       try {
         setLoading(true);
         setError(null);
-        
-        const response = await fetch("http://localhost:5000/api/reports/stock-summary");
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+    
+        const response = await api.get<ApiResponse>("/reports/stock-summary");
+    
+        if (!response.data.success) {
+          throw new Error("Failed to fetch stock data");
         }
-        
-        const result: ApiResponse = await response.json();
-        
-        if (!result.success) {
-          throw new Error('Failed to fetch stock data');
-        }
-        
+    
+        const result = response.data;
+    
         const transformedData = result.data.map(item => ({
           ...item,
           id: Math.random().toString(36).substring(2, 9),
@@ -70,7 +67,7 @@ export default function StockReportPage() {
           totalSalesValue: item.totalSalesValue ?? 0,
           profit: item.profit ?? 0
         }));
-        
+    
         setStockData(transformedData);
         setSummary({
           ...result.summary,
@@ -80,16 +77,17 @@ export default function StockReportPage() {
             sellingPrice: item.sellingPrice ?? 0
           }))
         });
-        
-        message.success('Stock data loaded successfully');
-      } catch (error) {
+    
+        message.success("Stock data loaded successfully");
+      } catch (error: any) {
         console.error("Error:", error);
-        setError(error instanceof Error ? error.message : 'Failed to fetch data');
-        message.error('Failed to load stock data');
+        setError(error?.message || "Failed to load stock data");
+        message.error("Failed to load stock data");
       } finally {
         setLoading(false);
       }
     };
+    
 
     fetchStockData();
   }, []);
