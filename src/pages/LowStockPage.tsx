@@ -20,7 +20,7 @@ export default function LowStockPage() {
     const fetchLowStock = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`/products/low-stock?threshold=${threshold}`);
+        const res = await api.get(`/my-products/low-stock?threshold=${threshold}`);
         
         if (!res.data) {
           throw new Error("No data received");
