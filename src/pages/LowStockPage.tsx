@@ -20,13 +20,10 @@ export default function LowStockPage() {
     const fetchLowStock = async () => {
       try {
         setLoading(true);
-        const res = await api.get(`/my-products/low-stock?threshold=${threshold}`);
-        
-        if (!res.data) {
-          throw new Error("No data received");
-        }
-
-        setProducts(Array.isArray(res.data) ? res.data : []);
+        const res = await api.get(`/products/low-stock`);
+  
+        // ✅ Only set products once and from correct property
+        setProducts(res.data?.data || []);
       } catch (error) {
         console.error("Failed to fetch low stock items:", error);
         setProducts([]);
@@ -34,9 +31,9 @@ export default function LowStockPage() {
         setLoading(false);
       }
     };
-
+  
     fetchLowStock();
-  }, [threshold]);
+  }, []);
 
   const getCurrentQuantity = (product: Product) => {
     return product.remainingQuantity ?? product.quantity ?? 0;
