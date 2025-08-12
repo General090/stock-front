@@ -24,14 +24,6 @@ interface ProductForChart {
   quantity: number;
 }
 
-interface Transaction {
-  _id: string;
-  product: { name: string };
-  type: string;
-  quantity: number;
-  createdAt: string;
-}
-
 export default function Dashboard() {
   const [stats, setStats] = useState<DashboardStats>({
     totalProducts: 0,
@@ -39,7 +31,6 @@ export default function Dashboard() {
     lowStock: 0,
   });
   const [products, setProducts] = useState<ProductForChart[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,22 +38,15 @@ export default function Dashboard() {
       try {
         setLoading(true);
         
-        // Fetch all data in parallel
-        const [statsRes, transactionsRes, productsRes] = await Promise.all([
+        // Fetch stats and products in parallel
+        const [statsRes, productsRes] = await Promise.all([
           api.get<{success: boolean; data: DashboardStats}>("/dashboard/stats"),
-          api.get<{success: boolean; data: Transaction[]}>("/transactions/recent"),
           api.get<{success: boolean; data: Product[]}>("/products/my-products")
-          
         ]);
 
         // Set stats
         if (statsRes.data.success) {
           setStats(statsRes.data.data);
-        }
-
-        // Set transactions
-        if (transactionsRes.data.success) {
-          setTransactions(transactionsRes.data.data);
         }
 
         // Format products for chart
@@ -130,24 +114,6 @@ export default function Dashboard() {
         </div>
 
         <StockChart data={products} />
-        
-
-        <h2 className="text-xl font-semibold mb-2 mt-10">Recent Transactions</h2>
-        <div className="bg-white p-4 shadow rounded">
-          {transactions.length === 0 ? (
-            <p className="text-gray-600">No recent transactions.</p>
-          ) : (
-            <ul className="divide-y">
-              {transactions.map((tx) => (
-                <li key={tx._id} className="py-2 flex justify-between text-sm">
-                  <span>{tx.type} - {tx.product?.name}</span>
-                  <span>{tx.quantity} pcs</span>
-                  <span>{new Date(tx.createdAt).toLocaleString()}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
       </div>
     </AdminLayout>
   );

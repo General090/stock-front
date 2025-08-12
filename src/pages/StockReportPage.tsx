@@ -129,7 +129,7 @@ export default function StockReportPage() {
       align: 'right' as const
     },
     {
-      title: "Cost/Unit ($)",
+      title: "Cost/Unit (₦)",
       dataIndex: "costPrice",
       key: "cost",
       render: (value: number | null | undefined) => (value ?? 0).toFixed(2),
@@ -137,7 +137,7 @@ export default function StockReportPage() {
       align: 'right' as const
     },
     {
-      title: "Price/Unit ($)",
+      title: "Price/Unit (₦)",
       dataIndex: "sellingPrice",
       key: "price",
       render: (value: number | null | undefined) => (value ?? 0).toFixed(2),
@@ -145,7 +145,7 @@ export default function StockReportPage() {
       align: 'right' as const
     },
     {
-      title: "Profit/Unit ($)",
+      title: "Profit/Unit (₦)",
       key: "unitProfit",
       render: (_: any, record: StockItem) => 
         ((record.sellingPrice ?? 0) - (record.costPrice ?? 0)).toFixed(2),
@@ -153,7 +153,7 @@ export default function StockReportPage() {
       align: 'right' as const
     },
     {
-      title: "Total Cost ($)",
+      title: "Total Cost (₦)",
       dataIndex: "totalCostValue",
       key: "totalCost",
       render: (value: number | null | undefined) => (value ?? 0).toFixed(2),
@@ -161,7 +161,7 @@ export default function StockReportPage() {
       align: 'right' as const
     },
     {
-      title: "Total Sales ($)",
+      title: "Total Sales (₦)",
       dataIndex: "totalSalesValue",
       key: "totalSales",
       render: (value: number | null | undefined) => (value ?? 0).toFixed(2),
@@ -169,7 +169,7 @@ export default function StockReportPage() {
       align: 'right' as const
     },
     {
-      title: "Total Profit ($)",
+      title: "Total Profit (₦)",
       dataIndex: "profit",
       key: "profit",
       render: (value: number | null | undefined) => (
@@ -202,7 +202,7 @@ export default function StockReportPage() {
       key: "threshold"
     },
     {
-      title: "Price/Unit ($)",
+      title: "Price/Unit (₦)",
       dataIndex: "sellingPrice",
       key: "price",
       render: (value: number | null | undefined) => (value ?? 0).toFixed(2)
@@ -244,7 +244,7 @@ export default function StockReportPage() {
                 title="Stock Value"
                 value={summary.totalStockValue}
                 precision={2}
-                prefix="$"
+                prefix="₦"
               />
             </div>
             <div className="p-4 bg-purple-50 rounded border">
@@ -252,7 +252,7 @@ export default function StockReportPage() {
                 title="Sales Value"
                 value={summary.totalSalesValue}
                 precision={2}
-                prefix="$"
+                prefix="₦"
               />
             </div>
             <div className="p-4 bg-orange-50 rounded border">
@@ -260,7 +260,7 @@ export default function StockReportPage() {
                 title="Total Profit"
                 value={summary.totalProfit}
                 precision={2}
-                prefix="$"
+                prefix="₦"
                 valueStyle={{ color: summary.totalProfit >= 0 ? '#3f8600' : '#cf1322' }}
               />
             </div>
