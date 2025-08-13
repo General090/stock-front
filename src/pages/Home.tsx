@@ -4,7 +4,7 @@ function Home() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-black px-4">
       <h1 className="text-4xl md:text-5xl font-bold text-gray-800 mb-2">StockEase</h1>
-        <p className="text-lg text-gray-600 mb-10">Smart Stock Monitoring & Receipt Management System</p>
+        <p className="text-lg text-center text-gray-600 mb-10">Smart Stock Monitoring & Receipt Management System</p>
 
       <div className="flex gap-6">
         <Link to="/login">
